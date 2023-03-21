@@ -17,6 +17,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -28,7 +29,7 @@ public class CleanDir implements Runnable {
     public static final String FORMAT_PDF = "pdf";
     public static final String FORMAT_JPG = "jpg";
     public static final String FORMAT_TIFF = "tiff";
-
+    private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
     private final File dir;
 
     private final Mask mask;
@@ -45,7 +46,7 @@ public class CleanDir implements Runnable {
         FileList fileList = new FileList().build(dir, false);
 
         try {
-            System.out.println("CreatePdf file in dir " + dir.getAbsolutePath());
+            log.debug("CreatePdf file in dir " + dir.getAbsolutePath());
 
             File pdfFile = new File(dir + File.separator + destinationFileName);
             Document document = new Document();
@@ -73,11 +74,10 @@ public class CleanDir implements Runnable {
        
 
         } catch (DocumentException | IOException e) {
-            System.out.println("Resize file exception " + e);
+            log.error("Resize file exception " + e);
             Ventana.traceProcessed("Error processing file " + dir + File.separator + destinationFileName);
-            Logger.getLogger(CleanDir.class.getName()).log(Level.SEVERE, null, e);
         } finally {
-            System.out.println("Clean image files in dir " + dir.getAbsolutePath());
+            log.debug("Clean image files in dir " + dir.getAbsolutePath());
 
             for (File imageFile : fileList.files) {
                 imageFile.delete();

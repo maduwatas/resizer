@@ -9,12 +9,15 @@ import es.xproject.resizer.util.FileList;
 import java.awt.List;
 import java.io.File;
 import javax.swing.SwingWorker;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
  * @author jsolis
  */
 public class CleanTask extends BaseTask {
+
+    private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
 
     public CleanTask(Ventana ventana) {
         super(ventana);
@@ -28,13 +31,13 @@ public class CleanTask extends BaseTask {
             protected String doInBackground()
                     throws Exception {
 
-                System.out.println("clean");
+                log.debug("clean");
 
                 FileList cleanList = new FileList().build(Ventana.destinationFile, true);
 
                 for (File imageFile : cleanList.files) {
                     imageFile.delete();
-                    System.out.println("delete " + imageFile);
+                    log.debug("delete " + imageFile);
 
                 }
 

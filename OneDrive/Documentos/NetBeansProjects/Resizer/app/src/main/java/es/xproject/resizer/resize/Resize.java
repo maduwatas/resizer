@@ -5,7 +5,6 @@
 package es.xproject.resizer.resize;
 
 import es.xproject.resizer.Ventana;
-import es.xproject.resizer.panels.Mask;
 import com.twelvemonkeys.image.ResampleOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
@@ -24,6 +23,7 @@ import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.metadata.IIOMetadataNode;
 import javax.imageio.stream.ImageOutputStream;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -35,7 +35,9 @@ public class Resize implements Runnable {
     public static final String FORMAT_PDF = "pdf";
     public static final String FORMAT_JPG = "jpg";
     public static final String FORMAT_TIFF = "tiff";
-
+    
+    private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
+    
     public static String[] getSupportedAlgorithms() {
         String[] aStrings = new String[aMap.size()];
         int i = 0;
@@ -82,7 +84,7 @@ public class Resize implements Runnable {
         String destinationFileName = FilenameUtils.removeExtension(file.getName()) + "." + typeFormat;
 
         try {
-            System.out.println("Resize file " + file.getName() + " format " + typeFormat);
+            log.debug("Resize file " + file.getName() + " format " + typeFormat);
 
             BufferedImage bimg = ImageIO.read(file);
 
@@ -98,7 +100,7 @@ public class Resize implements Runnable {
                 filter = (Integer) aMap.get(Ventana.algorithm);
             }
 
-            System.out.println("resample file " + file.getName() + width + "x" + height + " filter " + filter);
+            log.debug("resample file " + file.getName() + width + "x" + height + " filter " + filter);
 
             BufferedImageOp resampler = new ResampleOp(width, height, filter); // A good default filter, see class documentation for more info
 
@@ -107,21 +109,22 @@ public class Resize implements Runnable {
             File dir = new File(destinationPath + File.separator + filePath);
 
             if (!dir.exists()) {
-                System.out.println("dir " + dir.getAbsolutePath() + " mkdir");
+                log.debug("dir " + dir.getAbsolutePath() + " mkdir");
                 dir.mkdir();
             }
 
             File outputfile = new File(destinationPath + File.separator + filePath + File.separator + destinationFileName);
 
             write(output, typeFormat, outputfile);
-            System.out.println("output " + outputfile.getName() + " created");
-
+            log.debug("output " + outputfile.getName() + " created");
+            Ventana.imageCount.getAndIncrement();
             Ventana.mask.increment(1);
 
             Ventana.traceProcessed(destinationPath + File.separator + destinationFileName);
 
         } catch (IOException e) {
-            System.out.println("Resize file exception " + e);
+            Ventana.errorCount.getAndIncrement();
+            log.debug("Resize file exception " + e);
             Ventana.traceProcessed("Error processing file " + destinationPath + File.separator + destinationFileName);
             Logger.getLogger(Resize.class.getName()).log(Level.SEVERE, null, e);
         }
@@ -129,7 +132,7 @@ public class Resize implements Runnable {
 
     private void setDPI(String metadataFormat, IIOMetadata metadata) {
         try {
-            System.out.println("setDPI");
+            log.debug("setDPI");
 
             IIOMetadataNode root = new IIOMetadataNode(metadataFormat);
             IIOMetadataNode jpegVariety = new IIOMetadataNode("JPEGvariety");
@@ -150,9 +153,9 @@ public class Resize implements Runnable {
 
             metadata.mergeTree(metadataFormat, root);
 
-            System.out.println("setDPI done");
+            log.debug("setDPI done");
         } catch (Exception e) {
-            System.out.println("error change metadata: " + e);
+            log.debug("error change metadata: " + e);
         }
     }
 
@@ -185,7 +188,7 @@ public class Resize implements Runnable {
                 String[] names = metadata.getMetadataFormatNames();
                 setDPI(names[0], metadata);
 
-                System.out.println("quality " + Ventana.quality);
+                log.debug("quality " + Ventana.quality);
 
                 //IIOMetadata meta = readAndDisplayMetadata();
                 IIOImage first_IIOImage = new IIOImage(image, null, metadata);
@@ -194,7 +197,7 @@ public class Resize implements Runnable {
                 // control generic write settings like sub sampling, source region, output type etc.
                 // Optionally, provide thumbnails and image/stream metadata
                 writer.write(metadata, first_IIOImage, iwp);
-                System.out.println("done ");
+                log.debug("done ");
             }
         } finally {
             // Dispose writer in finally block to avoid memory leaks

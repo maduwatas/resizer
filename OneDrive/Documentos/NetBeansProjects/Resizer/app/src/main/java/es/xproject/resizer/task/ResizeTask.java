@@ -6,6 +6,8 @@ package es.xproject.resizer.task;
 
 import es.xproject.resizer.Ventana;
 import static es.xproject.resizer.Ventana.destinationFile;
+import static es.xproject.resizer.Ventana.errorCount;
+import static es.xproject.resizer.Ventana.imageCount;
 import static es.xproject.resizer.Ventana.mask;
 import static es.xproject.resizer.Ventana.newline;
 import static es.xproject.resizer.Ventana.pdfCheck;
@@ -20,20 +22,25 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingWorker;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
  * @author jsolis
  */
-public class ResizeTask extends BaseTask{
+public class ResizeTask extends BaseTask {
+
+    private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
 
     public ResizeTask(Ventana ventana) {
         super(ventana);
     }
-    
 
     @Override
     public void execute() {
+
+        Ventana.imageCount.set(0);
+        Ventana.errorCount.set(0);
 
         processed.setText("Destino: " + destinationFile.getAbsolutePath() + "." + newline);
         processed.setCaretPosition(processed.getDocument().getLength());
@@ -66,11 +73,12 @@ public class ResizeTask extends BaseTask{
                 }
                 int counter = 0;
                 for (File file : Ventana.fileList.files) {
-                    System.out.println(file.getAbsolutePath());
+                    log.debug(file.getAbsolutePath());
                     ventana.executorService.submit(new Resize(file));
                     counter++;
+
                 }
-                System.out.println(counter + " procesos en cola. ");
+                log.debug(counter + " procesos en cola. ");
                 // wait for all of the executor threads to finish
                 ventana.executorService.shutdown();
                 try {
@@ -102,7 +110,7 @@ public class ResizeTask extends BaseTask{
                     ventana.startPdfCreationsThread();
                 } else {
                     ventana.showFinalDialog();
-                    
+
                     unlockButtons();
                 }
             }
@@ -111,5 +119,5 @@ public class ResizeTask extends BaseTask{
 
         // Executes the swingworker on worker thread
         sw1.execute();
-    } 
+    }
 }

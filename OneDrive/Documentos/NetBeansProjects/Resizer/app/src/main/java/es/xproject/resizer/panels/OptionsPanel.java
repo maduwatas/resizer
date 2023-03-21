@@ -281,13 +281,13 @@ public class OptionsPanel extends JPanel {
 
     private JPanel createPoolSize(Ventana ventana) {
 
-        pdfPoolSize = new JComboBox(new String[]{"1", "2", "3", "4", "5"});
+        pdfPoolSize = new JComboBox(new String[]{"1", "2", "3", "4"});
         pdfPoolSize.setPreferredSize(new Dimension(100, 30));
         pdfPoolSize.setSelectedIndex(1);
         pdfPoolSize.addActionListener(ventana);
 
-        poolSize = new JComboBox(new String[]{"1", "2", "3", "4", "5"});
-        poolSize.setSelectedIndex(1);
+        poolSize = new JComboBox(new String[]{"1", "2", "3", "4", "5","6","7","8"});
+        poolSize.setSelectedIndex(3);
         poolSize.setPreferredSize(new Dimension(100, 30));
         poolSize.addActionListener(ventana);
 
@@ -321,6 +321,7 @@ public class OptionsPanel extends JPanel {
         launchButton.setEnabled(true);
         launchButton.setVisible(true);
         cancelButton.setVisible(false);
+        cancelButton.setEnabled(true);
         pdfButton.setEnabled(true);
         zoom.setEnabled(true);
         quality.setEnabled(true);
@@ -340,6 +341,7 @@ public class OptionsPanel extends JPanel {
         launchButton.setEnabled(false);
         launchButton.setVisible(false);
         cancelButton.setVisible(true);
+        cancelButton.setEnabled(true);
         pdfButton.setEnabled(false);
         zoom.setEnabled(false);
         quality.setEnabled(false);

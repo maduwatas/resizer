@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingWorker;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -25,6 +26,8 @@ import javax.swing.SwingWorker;
  */
 public class CreatePdfTask extends BaseTask {
 
+    private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
+    
     public CreatePdfTask(Ventana ventana) {
         super(ventana);
     }
@@ -38,7 +41,7 @@ public class CreatePdfTask extends BaseTask {
             @Override
             protected String doInBackground()
                     throws Exception {
-                System.out.println("startPdfCreationsThread " + destinationFile.getName());
+                log.debug("startPdfCreationsThread " + destinationFile.getName());
 
                 lockButtons();
                 
@@ -48,37 +51,37 @@ public class CreatePdfTask extends BaseTask {
                 }
                 
                 
-                System.out.println("recursive " + recursivePdf);
+                log.debug("recursive " + recursivePdf);
                 FileList destinationList = new FileList().build(destinationFile, recursivePdf, true);
                 
                 Ventana.processed.append("Inicando procesos con " + ventana.poolSize + " hilos para " +destinationList.dirs.size() + " directorios"+ Ventana.newline);
                 
                 mask.showMask(destinationList.dirs.size());
 
-                System.out.println("directories " + destinationList.dirs.size());
+                log.debug("directories " + destinationList.dirs.size());
                 int counter = 0;
                 for (File dir : destinationList.dirs) {
 
                     FileList dirList = new FileList().build(dir, false);
                     
-                    System.out.println("dir........ " + dir.getName());
-                    System.out.println("files...... " + dirList.files.size());
+                    log.debug("dir........ " + dir.getName());
+                    log.debug("files...... " + dirList.files.size());
 
                     if (dirList.hasFiles()) {
-                        System.out.println("executeCreatePdf in dir " + dir.getAbsolutePath());
+                        log.debug("executeCreatePdf in dir " + dir.getAbsolutePath());
                         ventana.executorService.submit(new CreatePdf(dir));
                         counter++;
                     } else {
-                        System.out.println("no files in " + dir.getName() + " skip");
+                        log.debug("no files in " + dir.getName() + " skip");
                     }
                 }
-                System.out.println(counter + " procesos en cola ");
+                log.debug(counter + " procesos en cola ");
 
                 // wait for all of the executor threads to finish
                 ventana.executorService.shutdown();
                 try {
                     while (!ventana.executorService.awaitTermination(30, TimeUnit.SECONDS)) {
-                        Logger.getLogger(Ventana.class.getName()).log(Level.INFO, "Procesos aún en curso...");
+                        log.info("Procesos aún en curso...");
                     }
                 } catch (InterruptedException ex) {
                     ventana.executorService.shutdownNow();

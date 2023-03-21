@@ -11,6 +11,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
+import org.apache.logging.log4j.LogManager;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 
@@ -20,6 +21,8 @@ import org.w3c.dom.Node;
  */
 public class ImageUtil {
 
+    private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
+    
     public static IIOMetadata readAndDisplayMetadata(File file) {
         IIOMetadata metadata = null;
         try {
@@ -41,7 +44,7 @@ public class ImageUtil {
                 String[] names = metadata.getMetadataFormatNames();
                 int length = names.length;
                 for (int i = 0; i < length; i++) {
-                    System.out.println("Format name: " + names[i]);
+                    log.debug("Format name: " + names[i]);
                     displayMetadata(metadata.getAsTree(names[i]));
                 }
 
@@ -49,7 +52,7 @@ public class ImageUtil {
 
         } catch (IOException e) {
 
-            System.out.println("error reading metadata " + file.getName());
+            log.debug("error reading metadata " + file.getName());
         }
 
         return metadata;
@@ -84,12 +87,12 @@ public class ImageUtil {
         Node child = node.getFirstChild();
         if (child == null) {
             // no children, so close element and return
-            System.out.println("/>");
+            log.debug("/>");
             return;
         }
 
         // children, so close current tag
-        System.out.println(">");
+        log.debug(">");
         while (child != null) {
             // print children recursively
             displayMetadata(child, level + 1);
@@ -98,6 +101,6 @@ public class ImageUtil {
 
         // print close tag of element
         indent(level);
-        System.out.println("</" + node.getNodeName() + ">");
+        log.debug("</" + node.getNodeName() + ">");
     }
 }

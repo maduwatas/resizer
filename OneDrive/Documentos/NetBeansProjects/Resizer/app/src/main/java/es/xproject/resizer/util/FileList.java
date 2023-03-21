@@ -9,6 +9,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -16,6 +17,8 @@ import org.apache.commons.io.FilenameUtils;
  */
 public class FileList {
 
+    private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
+    
     public static boolean anyImageFile(File destinationFile) {
         if (destinationFile != null) {
 
@@ -80,7 +83,7 @@ public class FileList {
             for (File file : fileList) {
 
                 if (file.isDirectory() && recursive) {
-                    System.out.println("list dir " + file.getName());
+                    log.trace("list dir " + file.getName());
                     list(file);
                 } else if (!onlyDir) {
 
@@ -88,7 +91,7 @@ public class FileList {
                         files.add(file);
                         tracePendings("Source file " + file.getAbsolutePath());
                     } else {
-                        System.out.println("discard file " + file.getName());
+                        log.trace("discard file " + file.getName());
                     }
                 }
             }

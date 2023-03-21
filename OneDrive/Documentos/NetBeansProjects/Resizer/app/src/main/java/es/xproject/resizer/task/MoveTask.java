@@ -23,16 +23,17 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.SwingWorker;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
  * @author jsolis
  */
 public class MoveTask extends BaseTask {
+
+    private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
 
     public MoveTask(Ventana ventana) {
         super(ventana);
@@ -45,6 +46,9 @@ public class MoveTask extends BaseTask {
             @Override
             protected String doInBackground()
                     throws Exception {
+
+                Ventana.imageCount.set(0);
+                Ventana.errorCount.set(0);
 
                 processed.setText("Copiando imágenes de " + imagesDir.getAbsolutePath() + "." + newline);
                 processed.setText("Destino " + destinationFile.getAbsolutePath() + "." + newline);
@@ -78,14 +82,13 @@ public class MoveTask extends BaseTask {
             @Override
             protected void done() {
 
-                
                 if (pdfCheck) {
                     ventana.startPdfCreationsThread();
                 } else {
                     ventana.showFinalDialog();
                     unlockButtons();
                 }
-                
+
                 ventana.pdfButton();
             }
 
@@ -104,16 +107,16 @@ public class MoveTask extends BaseTask {
                 for (File file : fileList.files) {
                     String filePath = file.getParent().replace(sourceFile.getPath(), "");
                     File destinationDir = new File(destinationFile.getPath() + File.separator + filePath);
-                    System.out.println("mv " + sourceFile.getAbsolutePath() + " to " + destinationDir.getAbsolutePath());
+                    log.debug("mv " + sourceFile.getAbsolutePath() + " to " + destinationDir.getAbsolutePath());
                     ventana.executorService.submit(new MoveFile(file, destinationDir));
                     counter++;
                 }
-                System.out.println(counter + " procesos en cola. ");
+                log.debug(counter + " procesos en cola. ");
                 // wait for all of the executor threads to finish
                 ventana.executorService.shutdown();
                 try {
                     while (!ventana.executorService.awaitTermination(30, TimeUnit.SECONDS)) {
-                        Logger.getLogger(Ventana.class.getName()).log(Level.INFO, "Procesos aún en curso...");
+                        log.info("Procesos aún en curso...");
                     }
                 } catch (InterruptedException ex) {
                     ventana.executorService.shutdownNow();
@@ -140,7 +143,6 @@ public class MoveTask extends BaseTask {
         @Override
         public void run() {
             try {
-               
 
                 String fileName = FilenameUtils.removeExtension(sourceFile.getName());
 
@@ -158,16 +160,18 @@ public class MoveTask extends BaseTask {
                     String destinationName = destinationDir.getAbsolutePath() + File.separator + fileName + ".jpg";
                     Path destinationPath = Paths.get(destinationName);
 
-                    System.out.append("mv " + match[0].getAbsolutePath() + " " + destinationName + newline);
+                    log.debug("mv " + match[0].getAbsolutePath() + " " + destinationName + newline);
 
                     Files.move(Paths.get(match[0].getAbsolutePath()), destinationPath, REPLACE_EXISTING);
-
+                    Ventana.imageCount.getAndIncrement();
                     processed.append("Fichero movido " + sourceFile.getName() + newline);
 
                 }
                 processed.setCaretPosition(processed.getDocument().getLength());
 
             } catch (IOException ex) {
+                log.error("Error moviendo: " + sourceFile.getName() + " " + ex);
+                Ventana.errorCount.getAndIncrement();
                 processed.append("Error moviendo: " + sourceFile.getName() + " " + ex + newline);
                 processed.setCaretPosition(processed.getDocument().getLength());
             }

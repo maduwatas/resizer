@@ -17,9 +17,16 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
+
 
 /**
  *
@@ -50,17 +57,23 @@ public class Ventana extends JFrame implements ActionListener, ChangeListener {
     public int poolSize, pdfPoolSize;
     public FilesPanel filesPanel;
     public static String separator;
+    public static final AtomicInteger imageCount = new AtomicInteger(0);
+    public static final AtomicInteger errorCount = new AtomicInteger(0);
 
     public ThreadPoolExecutor executorService;
+    
+    private static final Logger logger = LogManager.getLogger();
 
     public Ventana() {
+        logger.info("Opening XProject Resizer...");
         setVentana();
         init();
-
+        
         // TODO crear botón cancelar
     }
 
     private void setVentana() {
+        logger.debug("setVentana");
         this.setSize(1024, 768);
         this.setTitle("XProject Resizer");
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -70,7 +83,10 @@ public class Ventana extends JFrame implements ActionListener, ChangeListener {
     }
 
     private void init() {
-
+        
+        
+        
+        logger.debug("init");
         this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.Y_AXIS));
 
         //Create a file chooser
@@ -109,27 +125,30 @@ public class Ventana extends JFrame implements ActionListener, ChangeListener {
         poolSize = Integer.parseInt((String) uPanel.poolSize.getSelectedItem());
         pdfPoolSize = Integer.parseInt((String) uPanel.pdfPoolSize.getSelectedItem());
         scale = 1f;
-        separator =  uPanel.separatorChar.getText();
-
+        separator = uPanel.separatorChar.getText();
+        logger.debug("init done");
     }
 
     private boolean estaListo() {
-        
-        if (!validatePdf())
-              return false;
-        
-        if ( sourceFile != null && sourceFile.exists()
+
+        if (!validatePdf()) {
+            return false;
+        }
+
+        if (sourceFile != null && sourceFile.exists()
                 && destinationFile != null && destinationFile.exists()) {
             if (sourceFile.equals(destinationFile)) {
                 JOptionPane.showMessageDialog(this,
                         "Los directorios origen y destino no pueden ser los mismos.",
                         "Resizer",
                         JOptionPane.WARNING_MESSAGE);
+                logger.debug("Los directorios origen y destino no pueden ser los mismos");
                 return false;
             }
             return true;
         }
 
+        logger.debug("Elige directorio origen y destino");
         JOptionPane.showMessageDialog(this,
                 "Elige directorio origen y destino.",
                 "Resizer",
@@ -140,10 +159,12 @@ public class Ventana extends JFrame implements ActionListener, ChangeListener {
     }
 
     public static void tracePendings(String msg) {
+        logger.debug("add pending: " + msg);
         pending.append(msg + newline);
     }
 
     public static void traceProcessed(String msg) {
+        logger.debug("add processed: " + msg);
         processed.append(msg + newline);
     }
 
@@ -254,22 +275,22 @@ public class Ventana extends JFrame implements ActionListener, ChangeListener {
         } else if (e.getSource() == uPanel.mvButton) {
 
             if (validateMv()) {
-                
+
                 if (pdfCheck && !recursivePdf) {
                     uPanel.recursivePdf.doClick();
                 }
-                
+
                 new MoveTask(this).execute();
             }
 
         } else if (e.getSource() == uPanel.pdfButton) {
-            
+
             if (validatePdf()) {
                 processed.setText("Destino: " + destinationFile.getAbsolutePath() + "." + newline);
                 pending.setText("");
                 startPdfCreationsThread();
             }
-            
+
         } else if (e.getSource() == uPanel.algorithm) {
             algorithm = (String) uPanel.algorithm.getSelectedItem();
         } else if (e.getSource() == uPanel.fileType) {
@@ -289,6 +310,7 @@ public class Ventana extends JFrame implements ActionListener, ChangeListener {
     private boolean validateMv() {
         if (estaListo()) {
             if (imagesDir.equals(destinationFile)) {
+                logger.debug("El directorio destino no puede ser el mismo que el de imágenes " );
                 JOptionPane.showMessageDialog(this,
                         "El directorio destino no puede ser el mismo que el de imágenes.",
                         "Resizer",
@@ -301,25 +323,38 @@ public class Ventana extends JFrame implements ActionListener, ChangeListener {
     }
 
     public void startPdfCreationsThread() {
+        logger.debug("startPdfCreationsThread" );
         new CreatePdfTask(this).execute();
     }
 
     public void startResizeThread() {
+        logger.debug("startResizeThread" );
         new ResizeTask(this).execute();
     }
 
     public void showFinalDialog() {
+        String msg;
+
         if (uPanel.cancelButton.isEnabled()) {
-            JOptionPane.showMessageDialog(Ventana.this,
-                    "Proceso finalizado.",
-                    "Resizer",
-                    JOptionPane.INFORMATION_MESSAGE);
+            msg = "Proceso finalizado.";
         } else {
-            JOptionPane.showMessageDialog(Ventana.this,
-                    "Proceso cancelado.",
-                    "Resizer",
-                    JOptionPane.INFORMATION_MESSAGE);
+            msg = "Proceso cancelado.";
         }
+
+        if (imageCount.get() > 0) {
+            msg += "\n" + imageCount.get() + " imágenes procesadas con éxito.";
+        }
+
+        if (errorCount.get() > 0) {
+            msg += "\n" + errorCount.get() + " errores de proceso.";
+        }
+
+        JOptionPane.showMessageDialog(Ventana.this,
+                msg,
+                "Resizer",
+                JOptionPane.INFORMATION_MESSAGE);
+        
+        logger.debug("showFinalDialog " + msg);
     }
 
     public void pdfButton() {
@@ -331,13 +366,13 @@ public class Ventana extends JFrame implements ActionListener, ChangeListener {
     }
 
     private boolean validatePdf() {
-        separator =  uPanel.separatorChar.getText();
-        
+        separator = uPanel.separatorChar.getText();
+
         if (separator.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                        "El separador no puede estar vacío",
-                        "Resizer",
-                        JOptionPane.WARNING_MESSAGE);
+                    "El separador no puede estar vacío",
+                    "Resizer",
+                    JOptionPane.WARNING_MESSAGE);
             return false;
         }
         return true;

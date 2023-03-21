@@ -17,10 +17,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -33,7 +32,7 @@ public class CreatePdf implements Runnable {
     public static final String FORMAT_JPG = "jpg";
      public static final String FORMAT_JPEG = "jpeg";
     public static final String FORMAT_TIFF = "tiff";
-
+    private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
     private final File dir;
 
     public CreatePdf(File dir) {
@@ -48,8 +47,8 @@ public class CreatePdf implements Runnable {
         try {
             Ventana.processed.append("Inicando proceso para para " + dir.getName() + Ventana.newline);
                 
-            System.out.println("CreatePdf file in dir " + dir.getAbsolutePath());
-            System.out.println("ScalePdf  " + Ventana.scalePdf);
+            log.debug("CreatePdf file in dir " + dir.getAbsolutePath());
+            log.debug("ScalePdf  " + Ventana.scalePdf);
 
             String destinationFileName = dir.getAbsolutePath() + ".pdf";
             
@@ -106,7 +105,7 @@ public class CreatePdf implements Runnable {
                     document.newPage();
                     document.add(image1);
 
-                    System.out.println("adding page " + imageFile.getName());
+                    log.debug("adding page " + imageFile.getName());
 
                 }
 
@@ -118,9 +117,9 @@ public class CreatePdf implements Runnable {
             Ventana.traceProcessed(dir + File.separator + destinationFileName);
 
         } catch (DocumentException | IOException e) {
-            System.out.println("Resize file exception " + e);
+            log.error("Resize file exception " + e);
             Ventana.traceProcessed("Error processing file " + dir + File.separator + dir.getAbsolutePath());
-            Logger.getLogger(CreatePdf.class.getName()).log(Level.SEVERE, null, e);
+            
         }
     }
 
