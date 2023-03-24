@@ -1,35 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="WARN">
+<Configuration status="DEBUG">
     
      <Properties>
         <Property name="LOGS">./logs</Property>
+        <Property name="filename">codimage2.log</Property>
     </Properties>
-    
+  
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
         <RollingFile
             name="rollingFile"
-            fileName="${LOGS}/xproject-resizer.log"
-            filePattern="${LOGS}/application.%i.log.gz"
+            fileName="${LOGS}/${filename}"
+            filepattern="${LOGS}/${filename}.%d{yyyy-MM-dd}.gz"
             ignoreExceptions="false">
             <PatternLayout>
-                <Pattern>%d{yyyy-MM-dd HH:mm:ss} %-5p %m%n</Pattern>
+                <Pattern>thread="%tid" %d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L %m%n</Pattern>
             </PatternLayout>
             <Policies>
-                <SizeBasedTriggeringPolicy size="10MB" />
+                <SizeBasedTriggeringPolicy size="50 MB" />
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
             </Policies>
-            <DefaultRolloverStrategy max="5">
-                <Delete basePath="${LOGS}" maxDepth="2">
-                    <IfFileName glob="*/app-*.log.gz" />
-                    <IfLastModified age="P30D" />
-                </Delete>
-            </DefaultRolloverStrategy>
+            <DefaultRolloverStrategy max="10" />
         </RollingFile>
     </Appenders>
     <Loggers>
-        <Root level="trace">
+        <Root level="DEBUG">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="rollingFile"/>
         </Root>

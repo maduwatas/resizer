@@ -2,9 +2,11 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package es.xproject.resizer.panels;
+package es.xproject.resizer.igu.panels;
 
-import es.xproject.resizer.Ventana;
+import static es.xproject.resizer.App.rb;
+import es.xproject.resizer.igu.Ventana;
+import es.xproject.resizer.components.TextReadonly;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -30,24 +32,24 @@ public class FilesPanel extends JPanel {
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
-        add(new JLabel("Directorios"));
+        add(new JLabel(rb.getString("dirs")));
 
         createButtons(ventana);
 
     }
 
     private void buttons(Ventana ventana) {
-        sourceButton = new JButton("Directorio origen");
+        sourceButton = new JButton(rb.getString("srcDir"));
         sourceButton.addActionListener(ventana);
-        sourceButton.setPreferredSize(new Dimension(150,30));
+        sourceButton.setPreferredSize(new Dimension(140,30));
         //Create the save button.  We use the image from the JLF
         //Graphics Repository (but we extracted it from the jar).
-        destinationButton = new JButton("Directorio destino");
+        destinationButton = new JButton(rb.getString("destinationDir"));
         destinationButton.addActionListener(ventana);
-        destinationButton.setPreferredSize(new Dimension(150,30));
-        imagesButton = new JButton("Imágenes");
+        destinationButton.setPreferredSize(new Dimension(140,30));
+        imagesButton = new JButton(rb.getString("imgDir"));
         imagesButton.addActionListener(ventana);
-        imagesButton.setPreferredSize(new Dimension(150,30));
+        imagesButton.setPreferredSize(new Dimension(140,30));
     }
 
     private void createButtons(Ventana ventana) {
@@ -59,7 +61,7 @@ public class FilesPanel extends JPanel {
         buttons(ventana);
         panel.add(sourceButton);
         
-        sourceButtonText = new TextReadonly("Selecciona origen");
+        sourceButtonText = new TextReadonly(rb.getString("selectSrc"));
         
         panel.add(sourceButtonText);
         sourceButtonText.setEditable(false);
@@ -68,14 +70,14 @@ public class FilesPanel extends JPanel {
         panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         panel.add(destinationButton);
-        destinationButtonText = new TextReadonly("Selecciona directorio destino");
+        destinationButtonText = new TextReadonly(rb.getString("selectDestination"));
         panel.add(destinationButtonText);
 
         buttons.add(panel);
 
         panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.add(imagesButton);
-        imagesButtonText = new TextReadonly("Imágenes preprocesadas (opcional)");
+        imagesButtonText = new TextReadonly(rb.getString("selectImg"));
 
         panel.add(imagesButtonText);
         buttons.add(panel);
@@ -84,15 +86,7 @@ public class FilesPanel extends JPanel {
 
     }
 
-    private static class TextReadonly extends JTextField {
-
-        public TextReadonly(String text) {
-            setText(text);
-            setPreferredSize(new Dimension(450, 30));
-            setEditable(false);
-        }
-
-    }
+    
 
     public void enableFields() {
         sourceButton.setEnabled(true);

@@ -4,23 +4,20 @@
  */
 package es.xproject.resizer.task;
 
-import es.xproject.resizer.Ventana;
-import static es.xproject.resizer.Ventana.destinationFile;
-import static es.xproject.resizer.Ventana.errorCount;
-import static es.xproject.resizer.Ventana.imageCount;
-import static es.xproject.resizer.Ventana.mask;
-import static es.xproject.resizer.Ventana.newline;
-import static es.xproject.resizer.Ventana.pdfCheck;
-import static es.xproject.resizer.Ventana.processed;
-import static es.xproject.resizer.Ventana.sourceFile;
+import static es.xproject.resizer.App.rb;
+import es.xproject.resizer.base.Constants;
+import es.xproject.resizer.igu.Ventana;
+import static es.xproject.resizer.igu.Ventana.destinationFile;
+import static es.xproject.resizer.igu.Ventana.mask;
+import static es.xproject.resizer.igu.Ventana.pdfCheck;
+import static es.xproject.resizer.igu.Ventana.processed;
+import static es.xproject.resizer.igu.Ventana.sourceFile;
 import es.xproject.resizer.resize.Resize;
 import java.awt.List;
 import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.SwingWorker;
 import org.apache.logging.log4j.LogManager;
 
@@ -31,6 +28,7 @@ import org.apache.logging.log4j.LogManager;
 public class ResizeTask extends BaseTask {
 
     private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
+    // private ArrayList<Future<String>> futureList;
 
     public ResizeTask(Ventana ventana) {
         super(ventana);
@@ -40,21 +38,25 @@ public class ResizeTask extends BaseTask {
     public void execute() {
 
         Ventana.imageCount.set(0);
+        Ventana.skipCount.set(0);
         Ventana.errorCount.set(0);
 
-        processed.setText("Destino: " + destinationFile.getAbsolutePath() + "." + newline);
-        processed.setCaretPosition(processed.getDocument().getLength());
+        processed.setText("");
+        Ventana.traceProcessed("Destino: " + destinationFile.getAbsolutePath() + ".");
 
         lockButtons();
 
-        SwingWorker sw1 = new SwingWorker() {
+        SwingWorker sw1;
+        sw1 = new SwingWorker() {
             // Method
             @Override
             protected String doInBackground()
                     throws Exception {
 
-                processed.append("Inicando procesos con " + ventana.poolSize + " hilos" + newline);
+                traceHeap();
 
+                Ventana.traceProcessed(rb.getString("initProcess.1") + " " + ventana.poolSize + " " + rb.getString("initProcess.4"));
+              
                 if (ventana.executorService == null || ventana.executorService.getPoolSize() != ventana.poolSize) {
                     ventana.executorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(ventana.poolSize);
                 }
@@ -63,34 +65,51 @@ public class ResizeTask extends BaseTask {
 
                 for (File file : Ventana.fileList.files) {
                     String filePath = file.getParent().replace(sourceFile.getPath(), "");
-                    File dir = new File(destinationFile.getPath() + File.separator + filePath);
-                    if (!dir.exists()) {
-                        dir.mkdirs();
-                        processed.append("Creating dir: " + dir.getAbsolutePath() + newline);
-                        processed.setCaretPosition(processed.getDocument().getLength());
-
-                    }
+                    
+                    createDir(filePath, Constants.JPG_DIR);
+                    
+                    if (Ventana.dimMin > 0)
+                        createDir(filePath, Constants.JPGMIN_DIR);
+                    
+                    if (Ventana.pdfCheck)
+                        createDir(filePath, Constants.PDF_DIR);
                 }
                 int counter = 0;
+
+                //futureList = new ArrayList();
                 for (File file : Ventana.fileList.files) {
                     log.debug(file.getAbsolutePath());
+                    //    futureList.add((Future<String>) ventana.executorService.submit(new Resize(file)));
                     ventana.executorService.submit(new Resize(file));
                     counter++;
-
                 }
-                log.debug(counter + " procesos en cola. ");
+                log.debug(counter + " queued process. ");
+                traceHeap();
                 // wait for all of the executor threads to finish
                 ventana.executorService.shutdown();
                 try {
-                    while (!ventana.executorService.awaitTermination(30, TimeUnit.SECONDS)) {
-                        Logger.getLogger(Ventana.class.getName()).log(Level.INFO, "Procesos aún en curso...");
+                    log.debug("init await loop. ");
+                    while (!ventana.executorService.awaitTermination(15, TimeUnit.SECONDS)) {
+                        log.debug("waiting for termination loop...");
+                        traceHeap();
                     }
+                    log.debug("end await loop. ");
                 } catch (InterruptedException ex) {
+                    log.debug("shutdownNow threads");
                     ventana.executorService.shutdownNow();
                     Thread.currentThread().interrupt();
                 }
 
                 String res = "Finished Execution";
+
+                log.debug("Finished Execution");
+
+                traceHeap();
+
+                System.gc();
+
+                traceHeap();
+
                 return res;
             }
 
@@ -112,6 +131,16 @@ public class ResizeTask extends BaseTask {
                     ventana.showFinalDialog();
 
                     unlockButtons();
+                }
+            }
+
+        
+
+            private void createDir(String filePath, String parent) {
+                File dir = new File(destinationFile.getPath() + File.separator + parent + File.separator + filePath);
+                if (!dir.exists()) {
+                    dir.mkdirs();
+                    Ventana.traceProcessed("Creating dir: " + dir.getAbsolutePath());
                 }
             }
 

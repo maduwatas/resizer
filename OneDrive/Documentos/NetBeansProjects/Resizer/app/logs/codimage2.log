@@ -1,0 +1,5 @@
+thread="1" 2023-03-24 15:33:48 INFO  PropertiesUtil:42 2.0
+thread="1" 2023-03-24 15:33:48 INFO  PropertiesUtil:43 230324
+thread="1" 2023-03-24 15:33:48 INFO  Ventana:79 Opening CODiMAGE 2.0
+thread="1" 2023-03-24 15:33:48 DEBUG Ventana:113 init
+thread="1" 2023-03-24 15:33:48 DEBUG Ventana:161 init done

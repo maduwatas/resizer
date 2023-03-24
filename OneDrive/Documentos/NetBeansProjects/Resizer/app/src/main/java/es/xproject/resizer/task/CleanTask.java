@@ -4,7 +4,7 @@
  */
 package es.xproject.resizer.task;
 
-import es.xproject.resizer.Ventana;
+import es.xproject.resizer.igu.Ventana;
 import es.xproject.resizer.util.FileList;
 import java.awt.List;
 import java.io.File;

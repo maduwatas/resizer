@@ -2,9 +2,10 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package es.xproject.resizer.panels;
+package es.xproject.resizer.components;
 
-import es.xproject.resizer.Ventana;
+import es.xproject.resizer.igu.Ventana;
+import java.awt.Color;
 import javax.swing.JProgressBar;
 
 /**
@@ -17,6 +18,7 @@ public class Mask extends JProgressBar {
 
         setBounds(102, 40, 150, 16);
         setStringPainted(true);
+        setForeground(new Color(99,0,71));
         setVisible(false);
 
     }

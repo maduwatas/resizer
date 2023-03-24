@@ -4,7 +4,7 @@
  */
 package es.xproject.resizer.util;
 
-import static es.xproject.resizer.Ventana.tracePendings;
+import static es.xproject.resizer.igu.Ventana.tracePendings;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;

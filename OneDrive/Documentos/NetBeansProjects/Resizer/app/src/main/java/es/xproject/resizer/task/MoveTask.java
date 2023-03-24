@@ -4,18 +4,19 @@
  */
 package es.xproject.resizer.task;
 
-import es.xproject.resizer.Ventana;
-import static es.xproject.resizer.Ventana.destinationFile;
-import static es.xproject.resizer.Ventana.imagesDir;
-import static es.xproject.resizer.Ventana.newline;
-import static es.xproject.resizer.Ventana.pdfCheck;
-import static es.xproject.resizer.Ventana.processed;
-import static es.xproject.resizer.Ventana.sourceFile;
+import es.xproject.resizer.App;
+import static es.xproject.resizer.App.rb;
+import es.xproject.resizer.base.Constants;
+import es.xproject.resizer.igu.Ventana;
+import static es.xproject.resizer.igu.Ventana.destinationFile;
+import static es.xproject.resizer.igu.Ventana.imagesDir;
+import static es.xproject.resizer.igu.Ventana.pdfCheck;
+import static es.xproject.resizer.igu.Ventana.processed;
+import static es.xproject.resizer.igu.Ventana.sourceFile;
 import es.xproject.resizer.util.FileList;
 import java.awt.List;
 import java.io.File;
 import java.io.FileFilter;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,6 +36,8 @@ public class MoveTask extends BaseTask {
 
     private static final org.apache.logging.log4j.Logger log = LogManager.getLogger();
 
+    private int counter;
+
     public MoveTask(Ventana ventana) {
         super(ventana);
     }
@@ -47,12 +50,21 @@ public class MoveTask extends BaseTask {
             protected String doInBackground()
                     throws Exception {
 
-                Ventana.imageCount.set(0);
-                Ventana.errorCount.set(0);
+                traceHeap();
 
-                processed.setText("Copiando imágenes de " + imagesDir.getAbsolutePath() + "." + newline);
-                processed.setText("Destino " + destinationFile.getAbsolutePath() + "." + newline);
-                processed.setCaretPosition(processed.getDocument().getLength());
+                counter = 0;
+
+                if (ventana.executorService == null || ventana.executorService.getPoolSize() != ventana.pdfPoolSize) {
+                    ventana.executorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(ventana.pdfPoolSize);
+                }
+
+                Ventana.imageCount.set(0);
+                Ventana.skipCount.set(0);
+                Ventana.errorCount.set(0);
+                processed.setText("");
+
+                Ventana.traceProcessed(rb.getString("mvImage") + " " + imagesDir.getAbsolutePath() + ".");
+                Ventana.traceProcessed(rb.getString("destination") + " " + destinationFile.getAbsolutePath() + ".");
 
                 lockButtons();
 
@@ -62,13 +74,40 @@ public class MoveTask extends BaseTask {
 
                 // ficheros origen 
                 for (File dir : Ventana.fileList.dirs) {
+                    Ventana.traceProcessed(rb.getString("srcDir") + ": " + dir.getAbsolutePath() + ".");
 
-                    FileList files = new FileList().build(dir, false);
-                    if (files.hasFiles()) {
-                        move(files);
+                    try {
+                        log.debug("src dir: " + dir.getAbsolutePath());
+                        FileList files = new FileList().build(dir, false);
+                        if (files.hasFiles()) {
+                            log.debug("src dir has " + files.files.size() + " files");
+                            move(files);
+                        } else {
+                            log.warn("src dir is empty");
+                        }
+                    } catch (Throwable e) {
+                        log.error("error dir " + dir.getAbsolutePath() + ": " + e);
                     }
                 }
 
+                log.debug(counter + " queued process. ");
+                // wait for all of the executor threads to finish
+                ventana.executorService.shutdown();
+                try {
+                    log.debug("init await loop. ");
+                    while (!ventana.executorService.awaitTermination(30, TimeUnit.SECONDS)) {
+                        log.info("Still processing...");
+                        traceHeap();
+                    }
+                    log.debug("end await loop. ");
+                } catch (InterruptedException ex) {
+                    log.debug("shutdownNow.");
+                    ventana.executorService.shutdownNow();
+                    Thread.currentThread().interrupt();
+                }
+
+                traceHeap();
+                System.gc();
                 return null;
 
             }
@@ -89,39 +128,26 @@ public class MoveTask extends BaseTask {
                     unlockButtons();
                 }
 
-                ventana.pdfButton();
             }
 
             private void move(FileList fileList) {
                 for (File file : fileList.files) {
                     String filePath = file.getParent().replace(sourceFile.getPath(), "");
-                    File dir = new File(destinationFile.getPath() + File.separator + filePath);
+                    File dir = new File(destinationFile.getPath() + File.separator + Constants.JPG_DIR + File.separator + filePath);
                     if (!dir.exists()) {
                         dir.mkdirs();
-                        processed.append("Creating dir: " + dir.getAbsolutePath() + newline);
-                        processed.setCaretPosition(processed.getDocument().getLength());
+                        Ventana.traceProcessed("Creating dir: " + dir.getAbsolutePath());
                     }
                 }
-                int counter = 0;
 
                 for (File file : fileList.files) {
                     String filePath = file.getParent().replace(sourceFile.getPath(), "");
-                    File destinationDir = new File(destinationFile.getPath() + File.separator + filePath);
-                    log.debug("mv " + sourceFile.getAbsolutePath() + " to " + destinationDir.getAbsolutePath());
+                    File destinationDir = new File(destinationFile.getPath() + File.separator + Constants.JPG_DIR + File.separator + filePath);
+                    log.debug("mv dir " + sourceFile.getAbsolutePath() + " to " + destinationDir.getAbsolutePath());
                     ventana.executorService.submit(new MoveFile(file, destinationDir));
                     counter++;
                 }
-                log.debug(counter + " procesos en cola. ");
-                // wait for all of the executor threads to finish
-                ventana.executorService.shutdown();
-                try {
-                    while (!ventana.executorService.awaitTermination(30, TimeUnit.SECONDS)) {
-                        log.info("Procesos aún en curso...");
-                    }
-                } catch (InterruptedException ex) {
-                    ventana.executorService.shutdownNow();
-                    Thread.currentThread().interrupt();
-                }
+
             }
 
         };
@@ -152,28 +178,42 @@ public class MoveTask extends BaseTask {
                 File[] match = imagesDir.listFiles(fileFilter);
 
                 if (match.length == 0) {
-                    processed.append("Fichero no encontrado " + fileName + newline);
+                    Ventana.errorCount.getAndIncrement();
+                    log.warn("File not found " + fileName);
+                    Ventana.traceProcessed("Fichero no encontrado " + fileName);
                 } else if (match.length > 1) {
-                    processed.append("Más de un fichero " + fileName + newline);
+                    Ventana.errorCount.getAndIncrement();
+                    log.warn("More than one file " + fileName);
+                    Ventana.traceProcessed("Más de un fichero " + fileName);
                 } else {
 
-                    String destinationName = destinationDir.getAbsolutePath() + File.separator + fileName + ".jpg";
+                    String extension = FilenameUtils.getExtension(match[0].getName());
+                    
+                    String destinationName = destinationDir.getAbsolutePath() + File.separator + fileName + "." + extension;
                     Path destinationPath = Paths.get(destinationName);
 
-                    log.debug("mv " + match[0].getAbsolutePath() + " " + destinationName + newline);
+                    log.debug("mv " + match[0].getAbsolutePath() + " " + destinationName);
 
+                    if (Ventana.replaceStrategy.isRemain()) {
+                        File outputFile = destinationPath.toFile();
+                        if (outputFile.exists()) {
+                            Ventana.skipCount.getAndIncrement();
+                            Ventana.traceProcessed(Ventana.replaceStrategy + ": " + sourceFile.getName());
+                            return;
+                        }
+                    }
                     Files.move(Paths.get(match[0].getAbsolutePath()), destinationPath, REPLACE_EXISTING);
                     Ventana.imageCount.getAndIncrement();
-                    processed.append("Fichero movido " + sourceFile.getName() + newline);
+                    Ventana.traceProcessed(App.rb.getString("fileMoved") + " " + sourceFile.getName());
 
                 }
-                processed.setCaretPosition(processed.getDocument().getLength());
 
-            } catch (IOException ex) {
-                log.error("Error moviendo: " + sourceFile.getName() + " " + ex);
+                // debo controlar el outOfMemmory
+            } catch (Throwable ex) {
+                log.error(App.rb.getString("errorMoving") + ": " + sourceFile.getName() + " " + ex);
                 Ventana.errorCount.getAndIncrement();
-                processed.append("Error moviendo: " + sourceFile.getName() + " " + ex + newline);
-                processed.setCaretPosition(processed.getDocument().getLength());
+                Ventana.traceProcessed(": " + sourceFile.getName() + " " + ex);
+
             }
         }
     }
